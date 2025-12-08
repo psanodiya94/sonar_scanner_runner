@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonar Scanner Runner</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔍 Sonar Scanner Runner</h1>
+            <p class="subtitle">Automated code quality analysis for your repositories</p>
+        </header>
+
+        <main class="main-content">
+            <div class="card">
+                <h2 class="card-title">Scan Configuration</h2>
+                <form id="scanForm" class="scan-form">
+                    <div class="form-group">
+                        <label for="repository_name">
+                            Repository URL
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="repository_name"
+                            name="repository_name"
+                            placeholder="https://github.com/username/repository.git"
+                            required
+                        >
+                        <small class="form-help">Full Git repository URL (HTTPS or SSH)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="branch_name">
+                            Branch Name
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="branch_name"
+                            name="branch_name"
+                            placeholder="main"
+                            required
+                        >
+                        <small class="form-help">Branch to analyze (e.g., main, develop, feature/xyz)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="release_version">
+                            Release Version
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="release_version"
+                            name="release_version"
+                            placeholder="1.0.0"
+                            required
+                        >
+                        <small class="form-help">Version number for this analysis (e.g., 1.0.0, v2.3.1)</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="submitBtn" class="btn btn-primary">
+                            <span class="btn-icon">▶</span>
+                            Start Scan
+                        </button>
+                        <button type="button" id="clearBtn" class="btn btn-secondary">
+                            <span class="btn-icon">↻</span>
+                            Clear
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card output-card" id="outputCard" style="display: none;">
+                <div class="output-header">
+                    <h2 class="card-title">Scan Output</h2>
+                    <div class="status-badge" id="statusBadge">
+                        <span class="status-icon">●</span>
+                        <span id="statusText">Running...</span>
+                    </div>
+                </div>
+
+                <div class="output-box" id="outputBox">
+                    <div class="output-content" id="outputContent"></div>
+                </div>
+
+                <div class="output-actions">
+                    <button type="button" id="clearOutputBtn" class="btn btn-secondary">
+                        Clear Output
+                    </button>
+                    <button type="button" id="copyOutputBtn" class="btn btn-secondary">
+                        Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Sonar Scanner Runner v1.0.0 | Status: <span id="serverStatus" class="status-online">Online</span></p>
+        </footer>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Starting scan...</p>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
