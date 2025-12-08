@@ -214,7 +214,7 @@ class SonarScannerHandler(BaseHTTPRequestHandler):
                 [sys.executable, script_path, repo_name, branch_name, release_version],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
+                universal_newlines=True,
                 bufsize=1
             )
 
