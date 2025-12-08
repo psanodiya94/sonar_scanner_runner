@@ -61,6 +61,9 @@ class SonarScannerHandler(BaseHTTPRequestHandler):
             self._serve_static_file(path)
         elif path == '/api/status':
             self._handle_status()
+        elif path.startswith('/api/scan/'):
+            scan_id = path.replace('/api/scan/', '')
+            self._handle_scan_result(scan_id)
         else:
             self._set_headers(status=404)
             self.wfile.write(b'404 - Not Found')
@@ -113,6 +116,32 @@ class SonarScannerHandler(BaseHTTPRequestHandler):
             'status': 'running',
             'timestamp': datetime.now().isoformat(),
             'active_scans': len(active_scans)
+        }
+        self.wfile.write(json.dumps(response).encode())
+
+    def _handle_scan_result(self, scan_id):
+        """Handle scan result retrieval requests"""
+        with scan_lock:
+            if scan_id not in active_scans:
+                self._set_headers('application/json', status=404)
+                response = {
+                    'status': 'error',
+                    'message': f'Scan ID {scan_id} not found'
+                }
+                self.wfile.write(json.dumps(response).encode())
+                return
+
+            scan_data = active_scans[scan_id].copy()
+
+        self._set_headers('application/json')
+        response = {
+            'status': 'success',
+            'scan_id': scan_id,
+            'scan_status': scan_data['status'],
+            'output': scan_data['output'],
+            'start_time': scan_data.get('start_time'),
+            'end_time': scan_data.get('end_time'),
+            'return_code': scan_data.get('return_code')
         }
         self.wfile.write(json.dumps(response).encode())
 

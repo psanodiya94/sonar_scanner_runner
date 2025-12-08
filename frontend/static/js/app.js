@@ -107,10 +107,8 @@ async function handleSubmit(e) {
             appendOutput(`Scan ID: ${result.scan_id}`);
             appendOutput(`\nWaiting for output...\n`);
 
-            // Note: In this implementation, we're using a simpler approach
-            // The actual output will be shown when the scan completes
-            // For real-time updates, you would need WebSocket or polling
-            simulateScanProgress(data);
+            // Start polling for real scan output
+            pollScanProgress();
         } else {
             throw new Error(result.message || 'Failed to start scan');
         }
@@ -125,34 +123,54 @@ async function handleSubmit(e) {
 }
 
 /**
- * Simulate scan progress (since we don't have WebSocket)
- * In a production environment, you would poll for updates or use WebSocket
+ * Poll for scan progress from the backend
  */
-function simulateScanProgress(data) {
-    let progress = 0;
-    const steps = [
-        'Checking prerequisites...',
-        'Cloning repository...',
-        'Detecting build system...',
-        'Running build wrapper...',
-        'Executing SonarQube Scanner...',
-        'Processing results...'
-    ];
+let lastOutputLength = 0;
 
-    const interval = setInterval(() => {
-        if (progress < steps.length) {
-            appendOutput(`\n[${new Date().toLocaleTimeString()}] ${steps[progress]}`);
-            progress++;
-        } else {
-            clearInterval(interval);
-            // Simulate completion
-            setTimeout(() => {
+async function pollScanProgress() {
+    if (!state.scanId) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/scan/${state.scanId}`);
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+            const scanStatus = result.scan_status;
+            const output = result.output || [];
+
+            // Append new output lines
+            if (output.length > lastOutputLength) {
+                for (let i = lastOutputLength; i < output.length; i++) {
+                    appendOutput(output[i]);
+                }
+                lastOutputLength = output.length;
+            }
+
+            // Check if scan is complete
+            if (scanStatus === 'completed') {
+                clearInterval(state.pollInterval);
                 completeScan(true);
-            }, 3000);
+                lastOutputLength = 0;
+            } else if (scanStatus === 'failed' || scanStatus === 'error') {
+                clearInterval(state.pollInterval);
+                completeScan(false);
+                lastOutputLength = 0;
+            } else {
+                // Continue polling
+                if (!state.pollInterval) {
+                    state.pollInterval = setInterval(pollScanProgress, 1000);
+                }
+            }
         }
-    }, 2000);
-
-    state.pollInterval = interval;
+    } catch (error) {
+        console.error('Error polling scan progress:', error);
+        // Continue polling even on error
+        if (!state.pollInterval) {
+            state.pollInterval = setInterval(pollScanProgress, 1000);
+        }
+    }
 }
 
 /**
@@ -164,16 +182,11 @@ function completeScan(success) {
 
     if (success) {
         updateStatus('success', 'Scan Completed Successfully');
-        appendOutput('\n=== Scan Completed Successfully ===');
-        appendOutput('✓ All checks passed');
-        appendOutput('✓ Results uploaded to SonarQube');
-        appendOutput('\nPlease check your SonarQube dashboard for detailed results.');
+        appendOutput('\n=== Scan Completed ===');
         showNotification('Scan completed successfully!', 'success');
     } else {
         updateStatus('error', 'Scan Failed');
         appendOutput('\n=== Scan Failed ===');
-        appendOutput('✗ An error occurred during the scan');
-        appendOutput('Please check the logs for more details.');
         showNotification('Scan failed. Please check the output.', 'error');
     }
 }
@@ -196,6 +209,19 @@ function handleClear() {
  * Handle clear output button
  */
 function handleClearOutput() {
+    // Clear polling interval if exists
+    if (state.pollInterval) {
+        clearInterval(state.pollInterval);
+        state.pollInterval = null;
+    }
+
+    // Reset state
+    state.isScanning = false;
+    state.scanId = null;
+    lastOutputLength = 0;
+    elements.submitBtn.disabled = false;
+
+    // Clear UI
     elements.outputContent.innerHTML = '';
     elements.outputCard.style.display = 'none';
     updateStatus('running', 'Ready');
