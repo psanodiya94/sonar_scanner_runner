@@ -1,0 +1,27 @@
+{
+  "_comment": "Sonar Scanner Runner Configuration File",
+  "_instructions": "Copy this file to 'config.json' and update with your settings",
+
+  "sonar_host_url": "http://localhost:9000",
+  "sonar_token": "your_sonarqube_token_here",
+
+  "workspace_dir": "./temp",
+
+  "build_wrapper_cmd": "build-wrapper-linux-x86-64",
+  "sonar_scanner_cmd": "sonar-scanner",
+
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+
+  "logging": {
+    "level": "INFO",
+    "log_dir": "./logs"
+  },
+
+  "cleanup": {
+    "auto_cleanup": true,
+    "keep_failed_builds": false
+  }
+}

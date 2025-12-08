@@ -205,3 +205,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Sonar Scanner Runner specific
+logs/
+temp/
+config.json
+.env
+server.pid
+*.out
