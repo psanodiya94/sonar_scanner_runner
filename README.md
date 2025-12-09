@@ -145,9 +145,10 @@ The scan process includes these steps:
 1. **Prerequisites Check**: Verifies Git, SonarQube Scanner, and Build Wrapper are available
 2. **Repository Clone**: Clones the specified repository and branch
 3. **Build System Detection**: Automatically detects the project's build system
-4. **Build Wrapper Execution**: Runs the build with build wrapper (if applicable)
-5. **SonarQube Scan**: Executes the SonarQube Scanner
-6. **Cleanup**: Removes temporary files
+4. **Build Prerequisites**: Executes configured prerequisite commands in the same terminal
+5. **Build Wrapper Execution**: Runs the build with build wrapper (if applicable)
+6. **SonarQube Scan**: Executes the SonarQube Scanner
+7. **Cleanup**: Removes temporary files
 
 After completion, check your SonarQube dashboard for detailed analysis results.
 
@@ -201,9 +202,65 @@ sonar_scanner_runner/
   "server": {
     "host": "0.0.0.0",
     "port": 8080
+  },
+  "build_prerequisites": {
+    "global": [],
+    "maven": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
+    ],
+    "gradle": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64",
+      "chmod +x gradlew"
+    ]
   }
 }
 ```
+
+### Build Prerequisites
+
+You can configure prerequisite commands that will be executed **in the same terminal session** before the build commands. This is useful for:
+
+- Setting environment variables (e.g., `JAVA_HOME`, `NODE_ENV`)
+- Installing dependencies
+- Making scripts executable
+- Running setup commands
+- Activating virtual environments
+
+Prerequisites can be configured globally (for all build systems) or per build system (maven, gradle, cmake, make, npm, python).
+
+**Example use cases:**
+
+```json
+{
+  "build_prerequisites": {
+    "global": [
+      "export PATH=/custom/bin:$PATH"
+    ],
+    "maven": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64",
+      "export MAVEN_OPTS='-Xmx2048m'"
+    ],
+    "gradle": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64",
+      "chmod +x gradlew"
+    ],
+    "npm": [
+      "export NODE_ENV=production",
+      "npm config set strict-ssl false"
+    ],
+    "python": [
+      "python3 -m venv venv",
+      "source venv/bin/activate"
+    ]
+  }
+}
+```
+
+**Important notes:**
+- Prerequisites are executed in order using shell chaining (`&&`)
+- All prerequisites run in the same terminal session as the build command
+- Environment variables set in prerequisites are available during the build
+- If a prerequisite command fails, subsequent commands won't execute
 
 ## 🔧 Advanced Usage
 

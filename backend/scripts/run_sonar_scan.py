@@ -32,7 +32,16 @@ class SonarScanRunner:
             'sonar_token': os.environ.get('SONAR_TOKEN', ''),
             'workspace_dir': os.environ.get('WORKSPACE_DIR', str(self.project_root / 'temp')),
             'build_wrapper_cmd': 'build-wrapper-linux-x86-64',
-            'sonar_scanner_cmd': 'sonar-scanner'
+            'sonar_scanner_cmd': 'sonar-scanner',
+            'build_prerequisites': {
+                'global': [],
+                'maven': [],
+                'gradle': [],
+                'cmake': [],
+                'make': [],
+                'npm': [],
+                'python': []
+            }
         }
 
         if config_path.exists():
@@ -139,7 +148,41 @@ class SonarScanRunner:
         print("⚠ Could not detect build system, will skip build step")
         return None, None
 
-    def build_with_wrapper(self, build_command):
+    def show_prerequisites(self, build_system):
+        """Display prerequisite commands that will be executed"""
+        if not build_system:
+            return True
+
+        prerequisites = self.config.get('build_prerequisites', {})
+        global_prereqs = prerequisites.get('global', [])
+        system_prereqs = prerequisites.get(build_system, [])
+
+        all_prereqs = global_prereqs + system_prereqs
+
+        if not all_prereqs:
+            print("No prerequisite commands configured")
+            return True
+
+        self.print_step(f"Build Prerequisites for {build_system}")
+
+        print("The following prerequisite commands will be executed before the build:")
+        print("(These will run in the same terminal session as the build command)\n")
+
+        if global_prereqs:
+            print("Global prerequisites:")
+            for i, prereq_cmd in enumerate(global_prereqs, 1):
+                print(f"  [{i}] {prereq_cmd}")
+            print()
+
+        if system_prereqs:
+            print(f"{build_system.capitalize()} specific prerequisites:")
+            for i, prereq_cmd in enumerate(system_prereqs, 1):
+                print(f"  [{i}] {prereq_cmd}")
+            print()
+
+        return True
+
+    def build_with_wrapper(self, build_command, build_system=None):
         """Build the project with build wrapper"""
         self.print_step("Building Project with Build Wrapper")
 
@@ -148,7 +191,20 @@ class SonarScanRunner:
             return True
 
         output_dir = self.temp_dir / 'bw-output'
-        wrapper_cmd = f"{self.config['build_wrapper_cmd']} --out-dir {output_dir} {build_command}"
+
+        # Get prerequisite commands
+        prerequisites = self.config.get('build_prerequisites', {})
+        global_prereqs = prerequisites.get('global', [])
+        system_prereqs = prerequisites.get(build_system, []) if build_system else []
+        all_prereqs = global_prereqs + system_prereqs
+
+        # Build the full command chain to ensure prerequisites run in same terminal
+        if all_prereqs:
+            print(f"Including {len(all_prereqs)} prerequisite command(s) in build chain")
+            prereq_chain = ' && '.join(all_prereqs)
+            wrapper_cmd = f"{prereq_chain} && {self.config['build_wrapper_cmd']} --out-dir {output_dir} {build_command}"
+        else:
+            wrapper_cmd = f"{self.config['build_wrapper_cmd']} --out-dir {output_dir} {build_command}"
 
         returncode = self.run_command(wrapper_cmd, cwd=self.temp_dir, shell=True)
 
@@ -224,9 +280,14 @@ class SonarScanRunner:
             # Detect build system
             build_system, build_cmd = self.detect_build_system()
 
-            # Build with wrapper
+            # Show prerequisite steps that will be executed
             if build_system:
-                if not self.build_with_wrapper(build_cmd):
+                if not self.show_prerequisites(build_system):
+                    return 1
+
+            # Build with wrapper (includes prerequisites in same terminal)
+            if build_system:
+                if not self.build_with_wrapper(build_cmd, build_system):
                     return 1
 
             # Run Sonar Scanner

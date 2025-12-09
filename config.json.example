@@ -23,5 +23,34 @@
   "cleanup": {
     "auto_cleanup": true,
     "keep_failed_builds": false
+  },
+
+  "build_prerequisites": {
+    "_comment": "Commands to execute before build for each build system",
+    "global": [],
+    "maven": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64",
+      "export PATH=$JAVA_HOME/bin:$PATH"
+    ],
+    "gradle": [
+      "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64",
+      "chmod +x gradlew"
+    ],
+    "cmake": [
+      "export CC=gcc",
+      "export CXX=g++"
+    ],
+    "make": [
+      "export CC=gcc",
+      "export CXX=g++"
+    ],
+    "npm": [
+      "export NODE_ENV=production",
+      "npm config set strict-ssl false"
+    ],
+    "python": [
+      "python3 -m venv venv",
+      "source venv/bin/activate"
+    ]
   }
 }
